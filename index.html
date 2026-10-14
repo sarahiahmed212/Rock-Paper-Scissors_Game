@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rock, Paper, Scissors — Battle Arena</title>
+<style>
+  * { box-sizing: border-box; }
+  :root { --ink: #2e195c; --pink: #ff5eaa; --purple: #7957ff; --blue: #37c9ff; }
+  body {
+    margin: 0; min-height: 100vh; padding: 24px;
+    display: grid; place-items: center;
+    font-family: "Trebuchet MS", Arial, sans-serif; color: var(--ink);
+    background:
+      radial-gradient(circle at 12% 15%, #fff58a 0 5%, transparent 5.5%),
+      radial-gradient(circle at 88% 20%, #83ffe0 0 7%, transparent 7.5%),
+      radial-gradient(circle at 10% 85%, #ff9bd7 0 8%, transparent 8.5%),
+      linear-gradient(135deg, #ffb4e6, #c6b6ff 48%, #9deeff);
+  }
+  .arena {
+    width: min(100%, 850px); padding: clamp(18px, 4vw, 34px);
+    border: 3px solid rgba(255,255,255,.9); border-radius: 30px;
+    background: rgba(255,255,255,.82); backdrop-filter: blur(8px);
+    box-shadow: 0 22px 60px rgba(78, 44, 142, .25);
+    position: relative; overflow: hidden;
+  }
+  .arena::before, .arena::after {
+    content: "✦ ✧ ✦"; position: absolute; font-size: 25px; letter-spacing: 8px;
+    color: #ff62b2; opacity: .65; pointer-events: none;
+  }
+  .arena::before { top: 15px; left: 18px; }
+  .arena::after { bottom: 14px; right: 18px; color: #6c6bff; }
+  header { text-align: center; }
+  .eyebrow {
+    display: inline-block; padding: 7px 13px; border-radius: 999px;
+    background: linear-gradient(90deg, #ff80bd, #9a83ff, #54dfff);
+    color: white; font-weight: 900; letter-spacing: 1.5px; font-size: .78rem;
+  }
+  h1 { margin: 13px 0 7px; font-size: clamp(2rem, 5vw, 3.25rem); line-height: 1.05; }
+  h1 span { background: linear-gradient(90deg, #ff4c9a, #8458ff, #08a9df); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .subtitle { margin: 0 0 24px; color: #76658f; }
+  .scoreboard { display: flex; justify-content: center; gap: 12px; margin: 0 auto 20px; flex-wrap: wrap; }
+  .score-card {
+    min-width: 125px; padding: 12px 20px; border-radius: 18px; text-align: center;
+    background: white; border: 2px solid #eee7ff; box-shadow: 0 5px 0 #e6dcff;
+  }
+  .score-card strong { display: block; font-size: 1.7rem; color: #7652e8; }
+  .score-card small { color: #8a7ca4; font-weight: bold; letter-spacing: .7px; }
+  .choices { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .choice {
+    min-width: 0; padding: 18px 8px; border: 3px solid white; border-radius: 22px;
+    cursor: pointer; color: var(--ink); font: inherit; font-weight: 900;
+    box-shadow: 0 8px 0 rgba(60, 35, 105, .12); transition: transform .15s, box-shadow .15s;
+  }
+  .choice:hover { transform: translateY(-4px); box-shadow: 0 12px 0 rgba(60, 35, 105, .12); }
+  .choice:active { transform: translateY(2px); box-shadow: 0 3px 0 rgba(60, 35, 105, .12); }
+  .choice:disabled { cursor: default; opacity: .72; }
+  .choice .emoji { display: block; font-size: clamp(2.5rem, 7vw, 4rem); margin-bottom: 7px; }
+  .rock { background: linear-gradient(145deg, #ffe28a, #ffb45d); }
+  .paper { background: linear-gradient(145deg, #9af8ef, #6ad8ff); }
+  .scissors { background: linear-gradient(145deg, #ffb4dd, #d2b5ff); }
+  .battle {
+    margin-top: 22px; padding: 18px; border-radius: 22px;
+    background: linear-gradient(135deg, #fff4fb, #f2efff);
+    border: 2px dashed #d4c2ff; text-align: center;
+  }
+  .duel { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px; }
+  .fighter { padding: 8px; min-width: 0; }
+  .fighter .big { display: block; font-size: clamp(2.5rem, 8vw, 4.2rem); }
+  .fighter .name { display: block; font-weight: 900; color: #8069a4; }
+  .versus { font-size: 1.4rem; font-weight: 1000; color: #ff5ca9; }
+  #result { margin: 12px 0 4px; font-size: clamp(1.25rem, 3.5vw, 1.8rem); font-weight: 1000; min-height: 38px; }
+  #detail { margin: 0; color: #796c93; min-height: 24px; }
+  .bottom { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+  .utility {
+    border: 0; border-radius: 12px; padding: 11px 17px; cursor: pointer;
+    font: inherit; font-weight: 900; background: #35236e; color: white;
+  }
+  .utility.light { background: #eae3ff; color: #4c368e; }
+  .note { text-align: center; color: #8a7ca4; font-size: .85rem; margin: 16px 0 0; }
+  @media (max-width: 520px) {
+    body { padding: 12px; }
+    .choices { gap: 7px; }
+    .choice { padding: 14px 3px; border-radius: 16px; }
+    .score-card { min-width: 95px; padding: 10px; }
+    .arena { padding: 20px 13px; }
+  }
+</style>
+</head>
+<body>
+<main class="arena">
+  <header>
+    <div class="eyebrow">✨ PLAYER VS COMPUTER ✨</div>
+    <h1><span>Rock, Paper, Scissors!</span></h1>
+    <p class="subtitle">Pick your move and enter the colorful battle arena!</p>
+  </header>
+
+  <section class="scoreboard" aria-label="Scores">
+    <div class="score-card"><strong id="playerScore">0</strong><small>😎 YOU</small></div>
+    <div class="score-card"><strong id="round">0</strong><small>⚡ ROUND</small></div>
+    <div class="score-card"><strong id="computerScore">0</strong><small>💻 COMPUTER</small></div>
+  </section>
+
+  <section class="choices" aria-label="Choose your move">
+    <button class="choice rock" data-choice="rock"><span class="emoji">🪨</span>ROCK</button>
+    <button class="choice paper" data-choice="paper"><span class="emoji">📄</span>PAPER</button>
+    <button class="choice scissors" data-choice="scissors"><span class="emoji">✂️</span>SCISSORS</button>
+  </section>
+
+  <section class="battle" aria-live="polite">
+    <div class="duel">
+      <div class="fighter"><span class="big" id="playerMove">❔</span><span class="name">YOUR MOVE</span></div>
+      <div class="versus">VS</div>
+      <div class="fighter"><span class="big" id="computerMove">🤖</span><span class="name">COMPUTER</span></div>
+    </div>
+    <div id="result">Ready? Choose rock, paper, or scissors!</div>
+    <p id="detail">May the best player win! 🌈</p>
+  </section>
+
+  <div class="bottom">
+    <button class="utility" id="reset">↻ Reset Scores</button>
+    <button class="utility light" id="help">📜 How to Play</button>
+  </div>
+  <p class="note">Rock beats scissors • Scissors beat paper • Paper beats rock</p>
+</main>
+
+<script>
+  const moves = {
+    rock: { emoji: "🪨", beats: "scissors" },
+    paper: { emoji: "📄", beats: "rock" },
+    scissors: { emoji: "✂️", beats: "paper" }
+  };
+  let playerScore = 0, computerScore = 0, round = 0;
+  const $ = id => document.getElementById(id);
+
+  function play(playerChoice) {
+    const choices = Object.keys(moves);
+    const computerChoice = choices[Math.floor(Math.random() * choices.length)];
+    round++;
+
+    $("playerMove").textContent = moves[playerChoice].emoji;
+    $("computerMove").textContent = moves[computerChoice].emoji;
+    $("round").textContent = round;
+
+    if (playerChoice === computerChoice) {
+      $("result").textContent = "😐 It's a tie!";
+      $("result").style.color = "#8860d0";
+      $("detail").textContent = "Great minds think alike. Try another round!";
+    } else if (moves[playerChoice].beats === computerChoice) {
+      playerScore++;
+      $("result").textContent = "🎉 YOU WIN!";
+      $("result").style.color = "#159b75";
+      $("detail").textContent = `${capitalize(playerChoice)} beats ${computerChoice}. Amazing move!`;
+    } else {
+      computerScore++;
+      $("result").textContent = "🤖 COMPUTER WINS!";
+      $("result").style.color = "#e34d91";
+      $("detail").textContent = `${capitalize(computerChoice)} beats ${playerChoice}. Rematch time!`;
+    }
+    $("playerScore").textContent = playerScore;
+    $("computerScore").textContent = computerScore;
+  }
+
+  function capitalize(word) { return word[0].toUpperCase() + word.slice(1); }
+
+  document.querySelectorAll(".choice").forEach(button => {
+    button.addEventListener("click", () => play(button.dataset.choice));
+  });
+
+  $("reset").addEventListener("click", () => {
+    playerScore = 0; computerScore = 0; round = 0;
+    $("playerScore").textContent = 0;
+    $("computerScore").textContent = 0;
+    $("round").textContent = 0;
+    $("playerMove").textContent = "❔";
+    $("computerMove").textContent = "🤖";
+    $("result").textContent = "Scores reset! Ready for battle?";
+    $("result").style.color = "#2e195c";
+    $("detail").textContent = "Choose your move to start again. ✨";
+  });
+
+  $("help").addEventListener("click", () => {
+    $("result").textContent = "📜 How to Play";
+    $("result").style.color = "#7957ff";
+    $("detail").textContent = "Choose one move. Rock beats scissors, scissors beat paper, and paper beats rock. Same moves = tie!";
+  });
+</script>
+</body>
+</html>
